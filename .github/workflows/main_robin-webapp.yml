@@ -1,6 +1,3 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
 name: Build and deploy Node.js app to Azure Web App - robin-webapp
 
 on:
@@ -23,12 +20,14 @@ jobs:
 
       - name: npm install, build, and test
         run: |
+          npm cache clean --force
+          rm -rf package-lock.json node_modules
           npm install
-          npm run build --if-present
-          npm run test --if-present
+          npm install vite
+          npm run build
 
       - name: Zip artifact for deployment
-        run: zip release.zip ./* -r
+        run: zip -r release.zip dist/
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v3
@@ -43,7 +42,7 @@ jobs:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
-      id-token: write #This is required for requesting the JWT
+      id-token: write
 
     steps:
       - name: Download artifact from build job
@@ -52,8 +51,8 @@ jobs:
           name: node-app
 
       - name: Unzip artifact for deployment
-        run: unzip release.zip
-      
+        run: unzip release.zip -d .
+
       - name: Login to Azure
         uses: azure/login@v1
         with:
@@ -61,11 +60,9 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_0B661D45B4D845ECAD7CC9F92F6403BD }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_0260C7A78A8141DF82F396B78551B6A3 }}
 
-      - name: 'Deploy to Azure Web App'
+      - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v2
         with:
           app-name: 'robin-webapp'
-          slot-name: 'Production'
-          package: .
-          
+          package: release.zip
